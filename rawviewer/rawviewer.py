@@ -119,11 +119,11 @@ class RawViewer:
         self.__value_image = image
 
 
-    def _convert_showimg(self, rawimg, depth: int = 10, gamma = 2.2):
+    def _convert_showimg(self, rawimg, depth: int = 10, gamma = 2.2, pedestal = 64):
         max_val = 2 ** depth - 1
         tmp     = rawimg.astype(np.float64)
-        tmp     = 255 * ((tmp / max_val) ** (1 / gamma))
-        showimg = (np.clip(tmp, 0.0, max_val) + 0.5).astype(np.uint8)
+        tmp     = 255 * (((tmp - pedestal) / (max_val - pedestal)) ** (1 / gamma))
+        showimg = (np.clip(tmp, 0.0, max_val - pedestal) + 0.5).astype(np.uint8)
         if showimg.ndim == 2:
             return np.stack([showimg, showimg, showimg], 2)
         else:
