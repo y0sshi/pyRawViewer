@@ -75,6 +75,7 @@ class RawViewer:
     
         self.__src_image = image
         if zoom_fit is True:
+            self.redraw_image()
             self.zoom_fit()
         else:
             self.redraw_image()
@@ -88,17 +89,12 @@ class RawViewer:
             return
     
         self.setrawimage(image, depth)
-        print(f"src_image.shape   = {self.__src_image.shape}")
-        print(f"value_image.shape = {self.__value_image.shape}")
-        print(f"src[0]   = \n{self.__src_image[0]}")
-        print(f"value[0] = \n{self.__value_image[0]}")
 
         if zoom_fit is True:
+            self.redraw_image()
             self.zoom_fit()
         else:
             self.redraw_image()
-        print(f"disp_image.shape  = {self.__disp_image.shape}")
-        print(f"disp[0]  = \n{self.__disp_image[0]}")
 
 
     def get_mouse_coordinate_window(self):
@@ -192,6 +188,7 @@ class RawViewer:
             #print(f"scale = {scale}")
 
         elif event == cv2.EVENT_LBUTTONDBLCLK:
+            print("zoom_fit()")
             self.zoom_fit()
 
         elif event == cv2.EVENT_RBUTTONDBLCLK:
@@ -232,9 +229,9 @@ class RawViewer:
             print('zoom fit error')
             return
 
-        #if (image_width * image_height <= 0) or (win_width * win_height <= 0):
-        #    print(f'zoom fit error : image(w, h) = ({image_width}, {image_height}), win(w, h) = ({win_width}, {win_height})')
-        #    return
+        if (image_width * image_height <= 0) or (win_width * win_height <= 0):
+            print(f'zoom fit error : image(w, h) = ({image_width}, {image_height}), win(w, h) = ({win_width}, {win_height})')
+            return
 
         self.__affine_matrix = affine.identityMatrix(affine.AFFINE_MATRIX_SIZE)
         scale   = 1.0
