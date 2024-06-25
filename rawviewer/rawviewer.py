@@ -88,17 +88,17 @@ class RawViewer:
             return
     
         self.setrawimage(image, depth)
+        print(f"src_image.shape   = {self.__src_image.shape}")
+        print(f"value_image.shape = {self.__value_image.shape}")
+        print(f"src[0]   = \n{self.__src_image[0]}")
+        print(f"value[0] = \n{self.__value_image[0]}")
 
         if zoom_fit is True:
             self.zoom_fit()
         else:
             self.redraw_image()
-        print(f"src_image.shape   = {self.__src_image.shape}")
         print(f"disp_image.shape  = {self.__disp_image.shape}")
-        print(f"value_image.shape = {self.__value_image.shape}")
-        print(f"src[0]   = \n{self.__src_image[0]}")
         print(f"disp[0]  = \n{self.__disp_image[0]}")
-        print(f"value[0] = \n{self.__value_image[0]}")
 
 
     def get_mouse_coordinate_window(self):
@@ -232,16 +232,20 @@ class RawViewer:
             print('zoom fit error')
             return
 
+        #if (image_width * image_height <= 0) or (win_width * win_height <= 0):
+        #    print(f'zoom fit error : image(w, h) = ({image_width}, {image_height}), win(w, h) = ({win_width}, {win_height})')
+        #    return
+
         self.__affine_matrix = affine.identityMatrix(affine.AFFINE_MATRIX_SIZE)
         scale   = 1.0
         offsetx = 0.0
         offsety = 0.0
         if (win_width * image_height) > (image_width * win_height):
             scale   = win_height / image_height
-            offsetx = (win_width - image_width * scale)
+            offsetx = (win_width - image_width * scale) / 2.0
         else:
             scale   = win_width / image_width
-            offsety = (win_height - image_height * scale)
+            offsety = (win_height - image_height * scale) / 2.0
 
         self.__affine_matrix = affine.translateMatrix(0.5, 0.5).dot(self.__affine_matrix)
         self.__affine_matrix = affine.scaleMatrix(scale, scale).dot(self.__affine_matrix)
@@ -266,13 +270,13 @@ class RawViewer:
 
         self.__disp_image = cv2.warpAffine(self.__src_image, self.__affine_matrix[:2,], (win_width, win_height), flags = self.__inter, borderValue = self.__back_color)
 
-        #if self.__grid_disp_enabled is True:
-        #    if self.__affine_matrix[0, 0] > self.__min_grid_disp_scale:
-        #        self._draw_grid_line()
+        if self.__grid_disp_enabled is True:
+            if self.__affine_matrix[0, 0] > self.__min_grid_disp_scale:
+                self._draw_grid_line()
 
-        #if self.__bright_disp_enabled is True:
-        #    if self.__affine_matrix[0, 0] > self.__min_bright_disp_scale:
-        #        self._draw_bright_value()
+        if self.__bright_disp_enabled is True:
+            if self.__affine_matrix[0, 0] > self.__min_bright_disp_scale:
+                self._draw_bright_value()
 
         cv2.imshow(self.__winname, self.__disp_image)
 

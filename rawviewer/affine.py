@@ -49,7 +49,7 @@ def scaleMatrix(scale_x: float, scale_y: float):
     '''
     mat = identityMatrix(AFFINE_MATRIX_SIZE)
     mat[0, 0] = scale_x
-    mat[1, 0] = scale_y
+    mat[1, 1] = scale_y
 
     return mat
 
