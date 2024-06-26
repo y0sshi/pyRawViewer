@@ -42,7 +42,7 @@ class RawViewer:
 
         self.__gamma                     = 2.2
 
-        self.__zoom_delta                = 1.5
+        self.__zoom_delta                = 2.0
         self.__min_scale                 = 0.01
         self.__max_scale                 = 300
 
@@ -51,6 +51,8 @@ class RawViewer:
         self.__grid_disp_enabled         = True
         self.__grid_color                = (128, 128, 128)
         self.__min_grid_disp_scale       = 20
+
+        self.__gain                      = 1.0
 
         self.__mouse_event_enabled       = True
         self.__mouse_down_flag           = False
@@ -97,6 +99,21 @@ class RawViewer:
             self.redraw_image()
 
 
+    def set_gain(self, gain):
+        self.__gain = gain
+
+
+    def get_gain(self):
+        return self.__gain
+
+
+    def get_scale(self):
+        scale_x = self.__affine_matrix[0, 0]
+        scale_y = self.__affine_matrix[1, 1]
+
+        return scale_x, scale_y
+
+
     def get_mouse_coordinate_window(self):
         mouse_x = int(self.__mouse_coordinate_window_x + 0.5)
         mouse_y = int(self.__mouse_coordinate_window_y + 0.5)
@@ -120,10 +137,11 @@ class RawViewer:
 
 
     def _convert_showimg(self, rawimg, depth: int = 10, gamma = 2.2, pedestal = 64):
-        max_val = 2 ** depth - 1
-        tmp     = rawimg.astype(np.float64)
-        tmp     = 255 * (((tmp - pedestal) / (max_val - pedestal)) ** (1 / gamma))
-        showimg = (np.clip(tmp, 0.0, max_val - pedestal) + 0.5).astype(np.uint8)
+        max_val            = 2 ** depth - 1 - pedestal
+        rawimg_wo_pedestal = np.clip(rawimg.astype(np.int32) - pedestal, 0, max_val)
+        rawimg_f64         = rawimg_wo_pedestal.astype(np.float64)
+        tmp                = 255 * ((rawimg_f64 / max_val) ** (1 / gamma))
+        showimg            = (np.clip(tmp, 0.0, max_val) + 0.5).astype(np.uint8)
         if showimg.ndim == 2:
             return np.stack([showimg, showimg, showimg], 2)
         else:
@@ -275,7 +293,9 @@ class RawViewer:
             if self.__affine_matrix[0, 0] > self.__min_bright_disp_scale:
                 self._draw_bright_value()
 
-        cv2.imshow(self.__winname, self.__disp_image)
+        disp_image_gained = np.clip(self.__disp_image * self.__gain, 0.0, 255).astype(np.uint8)
+
+        cv2.imshow(self.__winname, disp_image_gained)
 
 
     def _draw_grid_line(self):

@@ -28,11 +28,21 @@ def main():
 
         if   key == ord('q'):
             break
+        elif key == ord('i'):
+            scale_x, scale_y = rv.get_scale()
+            print(f"scale_x = {scale_x}, scale_y = {scale_y}")
+            print(f"gain = {rv.get_gain()}")
         elif key == ord('p'):
             mouse_image_x, mouse_image_y = rv.get_mouse_coordinate_image()
             print(f"mouse_image(x, y) = ({mouse_image_x}, {mouse_image_y})")
         elif key == ord('r'):
             rv.setrawimage(img_in.data, depth=14)
+            rv.redraw_image()
+        elif key == ord('>'):
+            rv.set_gain(rv.get_gain() * 2.0)
+            rv.redraw_image()
+        elif key == ord('<'):
+            rv.set_gain(rv.get_gain() * 0.5)
             rv.redraw_image()
         else:
             pass
