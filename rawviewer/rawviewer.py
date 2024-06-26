@@ -35,6 +35,7 @@ class RawViewer:
         self.__inter                     = inter
 
         self.__src_image                 = None
+        self.__src_gained_image          = None
         self.__value_image               = None
         self.__disp_image                = None
         self.__affine_matrix             = affine.identityMatrix(affine.AFFINE_MATRIX_SIZE)
@@ -52,6 +53,7 @@ class RawViewer:
         self.__grid_color                = (128, 128, 128)
         self.__min_grid_disp_scale       = 20
 
+        self.__gain_enabled              = False
         self.__gain                      = 1.0
 
         self.__mouse_event_enabled       = True
@@ -100,7 +102,8 @@ class RawViewer:
 
 
     def set_gain(self, gain):
-        self.__gain = gain
+        self.__gain_enabled = True
+        self.__gain         = gain
 
 
     def get_gain(self):
@@ -133,7 +136,8 @@ class RawViewer:
         else:
             self.__src_image = image
 
-        self.__value_image = image
+        self.__src_gained_image = self.__src_image
+        self.__value_image      = image
 
 
     def _convert_showimg(self, rawimg, depth: int = 10, gamma = 2.2, pedestal = 64):
@@ -272,7 +276,6 @@ class RawViewer:
     def redraw_image(self):
         '''image redraw
         '''
-
         if self.__src_image is None:
             print('redraw_image() : src_image none')
             return
@@ -283,7 +286,11 @@ class RawViewer:
             print('redraw image error')
             return
 
-        self.__disp_image = cv2.warpAffine(self.__src_image, self.__affine_matrix[:2,], (win_width, win_height), flags = self.__inter, borderValue = self.__back_color)
+        if self.__gain_enabled is True:
+            self.__src_gained_image = np.clip(self.__src_image * self.__gain, 0.0, 255).astype(np.uint8)
+            self.__gain_enabled     = False
+
+        self.__disp_image = cv2.warpAffine(self.__src_gained_image, self.__affine_matrix[:2,], (win_width, win_height), flags = self.__inter, borderValue = self.__back_color)
 
         if self.__grid_disp_enabled is True:
             if self.__affine_matrix[0, 0] > self.__min_grid_disp_scale:
@@ -293,9 +300,8 @@ class RawViewer:
             if self.__affine_matrix[0, 0] > self.__min_bright_disp_scale:
                 self._draw_bright_value()
 
-        disp_image_gained = np.clip(self.__disp_image * self.__gain, 0.0, 255).astype(np.uint8)
 
-        cv2.imshow(self.__winname, disp_image_gained)
+        cv2.imshow(self.__winname, self.__disp_image)
 
 
     def _draw_grid_line(self):
