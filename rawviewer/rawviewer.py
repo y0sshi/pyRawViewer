@@ -57,6 +57,8 @@ class RawViewer:
         self.__bitwidth                  = 10
         self.__pedestal                  = 64
 
+        self.__color_disp_enable         = True
+
         self.__mouse_event_enabled       = True
         self.__mouse_down_flag           = False
         self.__mouse_coordinate_window_x = 0
@@ -299,17 +301,47 @@ class RawViewer:
             print('redraw image error')
             return
 
-        self.__disp_image = cv2.warpAffine(self.__src_gained_image, self.__affine_matrix[:2,], (win_width, win_height), flags = self.__inter, borderValue = self.__back_color)
+        ## colored display
+        if self.__color_disp_enable is True:
+            tile_repeats = ((len(self.__src_gained_image)    // len(self.__color_filter)),     ## height
+                            (len(self.__src_gained_image[0]) // len(self.__color_filter[0])))  ## width
 
+            src_image = self.__src_gained_image[:,:,0]
+            disp_image_b = np.where(np.tile(np.equal(self.__color_filter, "B") |
+                                            np.equal(self.__color_filter, "C") |
+                                            np.equal(self.__color_filter, "M") |
+                                            np.equal(self.__color_filter, "W"), tile_repeats), src_image, 0)
+
+            disp_image_g = np.where(np.tile(np.equal(self.__color_filter, "GR") |
+                                            np.equal(self.__color_filter, "GB") |
+                                            np.equal(self.__color_filter, "C")  |
+                                            np.equal(self.__color_filter, "Y")  |
+                                            np.equal(self.__color_filter, "W"), tile_repeats), src_image, 0)
+
+            disp_image_r = np.where(np.tile(np.equal(self.__color_filter, "R") |
+                                            np.equal(self.__color_filter, "M")  |
+                                            np.equal(self.__color_filter, "Y")  |
+                                            np.equal(self.__color_filter, "W"), tile_repeats), src_image, 0)
+
+            colored_src_image = np.stack([disp_image_b, disp_image_g, disp_image_r], axis=2)
+            self.__disp_image = cv2.warpAffine(colored_src_image, self.__affine_matrix[:2,], (win_width, win_height), flags = self.__inter, borderValue = self.__back_color)
+        else:
+            self.__disp_image = cv2.warpAffine(self.__src_gained_image, self.__affine_matrix[:2,], (win_width, win_height), flags = self.__inter, borderValue = self.__back_color)
+
+
+        ## draw grid-line
         if self.__grid_disp_enabled is True:
             if self.__affine_matrix[0, 0] > self.__min_grid_disp_scale:
                 self._draw_grid_line()
 
+
+        ## display bright-value
         if self.__bright_disp_enabled is True:
             if self.__affine_matrix[0, 0] > self.__min_bright_disp_scale:
                 self._draw_bright_value()
 
 
+        ## show image
         cv2.imshow(self.__winname, self.__disp_image)
 
 
