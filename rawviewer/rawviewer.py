@@ -53,8 +53,9 @@ class RawViewer:
         self.__grid_color                = (128, 128, 128)
         self.__min_grid_disp_scale       = 20
 
-        self.__gain_enabled              = False
         self.__gain                      = 1.0
+        self.__bitwidth                  = 10
+        self.__pedestal                  = 64
 
         self.__mouse_event_enabled       = True
         self.__mouse_down_flag           = False
@@ -85,14 +86,16 @@ class RawViewer:
             self.redraw_image()
 
 
-    def rawshow(self, image, depth :int = 10, zoom_fit :bool = True):
+    def rawshow(self, image, bitwidth :int = 10, zoom_fit :bool = True):
         '''Image display
         '''
+        self.__bitwidth = bitwidth
+
         if image is None:
             print('rawshow error')
             return
     
-        self.setrawimage(image, depth)
+        self.setrawimage(image, self.__gain, self.__bitwidth, self.__gamma, self.__pedestal)
 
         if zoom_fit is True:
             self.redraw_image()
@@ -101,9 +104,19 @@ class RawViewer:
             self.redraw_image()
 
 
+    def set_pedestal(self, pedestal):
+        self.__pedestal = pedestal
+        self.setrawimage(self.__value_image, self.__gain, self.__bitwidth, self.__gamma, self.__pedestal)
+
+
     def set_gain(self, gain):
-        self.__gain_enabled = True
-        self.__gain         = gain
+        self.__gain = gain
+        self.setrawimage(self.__value_image, self.__gain, self.__bitwidth, self.__gamma, self.__pedestal)
+
+
+    def set_gamma(self, gamma):
+        self.__gamma = gamma
+        self.setrawimage(self.__value_image, self.__gain, self.__bitwidth, self.__gamma, self.__pedestal)
 
 
     def get_gain(self):
@@ -130,18 +143,18 @@ class RawViewer:
         return mouse_x, mouse_y
 
 
-    def setrawimage(self, image, depth :int = 10):
+    def setrawimage(self, image, gain = 1.0, bitwidth :int = 10, gamma = 2.2, pedestal = 64):
         if image.ndim == 2:
-            self.__src_image = self._convert_showimg(image, depth, self.__gamma)
+            self.__src_image = self._convert_showimg(image, bitwidth, gamma, pedestal)
         else:
             self.__src_image = image
 
-        self.__src_gained_image = self.__src_image
+        self.__src_gained_image = np.clip(self.__src_image * gain, 0.0, 255).astype(np.uint8)
         self.__value_image      = image
 
 
-    def _convert_showimg(self, rawimg, depth: int = 10, gamma = 2.2, pedestal = 64):
-        max_val            = 2 ** depth - 1 - pedestal
+    def _convert_showimg(self, rawimg, bitwidth: int = 10, gamma = 2.2, pedestal = 64):
+        max_val            = 2 ** bitwidth - 1 - pedestal
         rawimg_wo_pedestal = np.clip(rawimg.astype(np.int32) - pedestal, 0, max_val)
         rawimg_f64         = rawimg_wo_pedestal.astype(np.float64)
         tmp                = 255 * ((rawimg_f64 / max_val) ** (1 / gamma))
@@ -285,10 +298,6 @@ class RawViewer:
         except:
             print('redraw image error')
             return
-
-        if self.__gain_enabled is True:
-            self.__src_gained_image = np.clip(self.__src_image * self.__gain, 0.0, 255).astype(np.uint8)
-            self.__gain_enabled     = False
 
         self.__disp_image = cv2.warpAffine(self.__src_gained_image, self.__affine_matrix[:2,], (win_width, win_height), flags = self.__inter, borderValue = self.__back_color)
 
